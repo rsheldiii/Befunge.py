@@ -53,7 +53,7 @@ class BefungeInterpreter:
                                    '_' : self.westOrEast, '|' : self.northOrSouth,\
                                    ':' : self.duplicate, '\\' : self.swap, '$' : self.pop, '.' : self.intPrint, ',' : self.strPrint,\
                                    '#' : self.jump, 'p' : self.put, 'g' : self.get,\
-                                   '&' : self.inputNumber, '~' : self.inputChar, '@' : self.end, ' ' : self.noop,\
+                                   '&' : self.inputNumber, '~' : self.inputChar, '@' : self.end, "noop" : self.noop,\
                                    self.stringCharacter : self.string, 'r' : self.reverse, 'x' : self.popVector,\
                                    'j' : self.jumpForward, 'q' : self.quit, 'k' : self.iterate,\
                                    '[' : self.turnLeft, ']' : self.turnRight, 'w' : self.compare,
@@ -87,7 +87,7 @@ class BefungeInterpreter:
         charinput = file.readlines()
         self.clearProgram()
         for y in range(0,len(charinput)):
-            for x in range(0,len(charinput[y])):
+            for x in range(0,len(charinput[y])-1):#1 to cut off newlines! check spec on this, we might need to account for /r/n
                 self.program[(x,y)] = charinput[y][x]
     
     def loadCSVFile(self,filePath):
@@ -95,7 +95,7 @@ class BefungeInterpreter:
         y = 0
         width = 0
         with open(filePath, newline='') as csvfile:
-            reader = csv.reader(csvfile, delimiter="\t", quotechar='�')
+            reader = csv.reader(csvfile, delimiter="\t", quotechar='"')
             for row in reader:
                 if self.verbose:
                     print(row)
@@ -111,15 +111,16 @@ class BefungeInterpreter:
     def run(self):
         self.pointerPosition = (0,0)
         
-        while not self.exitStateFound:
+        while not self.exitStateFound:# and self.tick < 300:
             self.tick +=1
             if self.verbose:
                 currentCommand = self.getCommand()
                 print(self.stack)
-                print("pointer position: " + str(self.pointerPosition))
-                print("direction: " +str(self.delta))
+                #print("pointer position: " + str(self.pointerPosition))
+                #print("direction: " +str(self.delta))
                 print("current command: " + currentCommand)
-                print('tick: '+ str(self.tick))
+                #print('tick: '+ str(self.tick))
+                print('-'*20)
             self.processCommand()
         
         return self.exitValue
@@ -159,7 +160,7 @@ class BefungeInterpreter:
         self.advance()
         
     def error(self):
-        print("unexpected character encountered, " + str(self.getCommand()))
+        print("unexpected character encountered, '" + str(self.getCommand()) + "' at " + str(self.pointerPosition))
         exit()
     
     def advance(self):#TODO: implement lahey-space wraparound
@@ -224,7 +225,7 @@ class BefungeInterpreter:
         if a==0:
             self.delta = self.SOUTH
         else:
-            self.delta = self.NOTH
+            self.delta = self.NORTH
     def string(self):
         if not self.stringMode:
             self.stringMode = True;
@@ -379,6 +380,7 @@ class BefungeInterpreter:
         
 b = BefungeInterpreter()
 b.verbose = False#True
-b.loadASCIIFile('befunge.txt')
+b.loadCSVFile('dice.csv')
+#b.loadASCIIFile('befunge.txt')
 
 b.run()
