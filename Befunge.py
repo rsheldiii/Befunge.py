@@ -12,7 +12,11 @@ while True:
 import sys,random,csv,re
 from collections import deque
 
-class Stack:#currently no idea how to do x[3:5]
+'''
+Stack wrapper around python List class to make it funge compliant. 
+empty lists error when popped; funge requires a value of 0 to be returned
+'''
+class Stack:
     def __init__(self,a=[]):
         self.list = a
     def push(self,val):
@@ -24,7 +28,7 @@ class Stack:#currently no idea how to do x[3:5]
             except:
                 return 0
         else:
-            self.list.pop(n)#will error if you try to pop something that doesnt exist. good idea?
+            self.list.pop(n)#will error if you try to pop past the end of the stack. need to check spec on this
     def __getitem__(self,i):
         return self.list[i]
     def __repr__(self):
@@ -43,6 +47,7 @@ class BefungeInterpreter:
         self.stringCharacter = '"'
         self.jumpOverMode = False;
         self.jumpOverCharacter = ';'
+
         self.functionDictionary = {\
                                    '+' : self.add, '-' : self.subtract, '*' : self.multiply, '/' : self.divide,\
                                    '%' : self.modulus, '!' : self.logicalNot, '`' : self.greaterThan,\
@@ -150,8 +155,8 @@ class BefungeInterpreter:
         currentCommand = self.getCommand()
         if self.stringMode:
             self.string()    
-        elif currentCommand in set("1234567890abcdef"):#TODO: make these into functions cuz its faster
-            self.push(int(currentCommand,16))#pretty sure we should do int here
+        elif currentCommand in set("1234567890abcdef"):#TODO: optimize
+            self.push(int(currentCommand,16))
         else:
             self.functionDictionary.get(currentCommand,self.error)()     
         self.advance()
@@ -164,7 +169,7 @@ class BefungeInterpreter:
         screenspaceDelta = (self.delta[0],-self.delta[1])#delta is stored as coordinate delta. in screenspace positive y is flipped. this affects the turning functions
         self.pointerPosition = tuple(map(lambda x,y: x+y,self.pointerPosition,screenspaceDelta))
     
-    def retreat(self):#technically I dont have to implement the wraparound for this function because its internal
+    def retreat(self):
         self.pointerPosition = tuple(map(lambda x,y: x-y,self.pointerPosition,self.delta))
 
     def pop(self,n=""):#TODO: figure out how they do default n
@@ -321,7 +326,6 @@ class BefungeInterpreter:
             self.turnRight()
     
     #TODO: do pushthrough functions. 0-9 and a-f
-    #TODO: in string mode, spaces are NOT ignored, but are truncated to a single space
     def fetchCharacter(self):
         self.advance()
         self.push(ord(self.getCommand()))
@@ -367,16 +371,15 @@ class BefungeInterpreter:
                     self.push(self.stack[1].pop())
             elif n < 0:
                 for i in range(0,-n):
-                    self.stack[1].push(self.pop())#TODO: check if push is valid for python lists and get rid of all appends
-                    #more TODO: need to create class for stacks. pop() needs to return 0 if nothing is on the stack, which it wont right now
+                    self.stack[1].push(self.pop())
                     
                   
     #TO BE CONTINUED
         
         
 b = BefungeInterpreter()
-b.verbose = False#True
-b.loadCSVFile('dice.csv')
-#b.loadASCIIFile('befunge.txt')
-
-b.run()
+if (len(sys.argv) <= 2):
+	b.verbose = False#True
+	b.loadCSVFile('dice.csv')
+	#b.loadASCIIFile('befunge.txt')
+	b.run()
