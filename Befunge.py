@@ -3,16 +3,13 @@ Created on Jun 13, 2013
 
 @author: RSHELDON
 
-NOTE: currently windows only because of the msvcrt module
-linux solution for immediate command line interpretation should be implemented
-
 import sys
 import tty
 tty.setcbreak(sys.stdin)
 while True:
     print ord(sys.stdin.read(1))
 '''
-import sys,random,csv,msvcrt,re
+import sys,random,csv,re
 from collections import deque
 
 class Stack:#currently no idea how to do x[3:5]
@@ -260,12 +257,11 @@ class BefungeInterpreter:
         
         self.push(ord(self.program[(x,y)]))
     def inputNumber(self):#spec says to extract first contiguous base 10 number from input
-        #msvcrt.getch() #wai wont u work
+        
         m = re.search('\d+',input())
         self.push(int(m.group(0)))#currently errors if not found. maybe reflect()?
         
     def inputChar(self):
-        #self.push(ord(msvcrt.getch()))
         self.push(ord(input()))
     def end(self):
         self.exitStateFound = True
