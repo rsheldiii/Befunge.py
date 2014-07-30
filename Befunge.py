@@ -13,7 +13,7 @@ import sys,random,csv,re
 from collections import deque
 
 '''
-Stack wrapper around python List class to make it funge compliant. 
+Stack wrapper around python List class to make it funge compliant.
 empty lists error when popped; funge requires a value of 0 to be returned
 '''
 class Stack:
@@ -66,24 +66,25 @@ class BefungeInterpreter:
         self.WEST = (-1,0)
         self.NORTH = (0,1)
         self.SOUTH = (0,-1)
-        
+
         self.delta = self.EAST
-        
+        self.verbose = False
+
         if __name__ == "__main__":
             if '-f' in sys.argv:
                 self.loadASCIIFile(sys.argv[sys.argv.index('-f')+1])
             if '-c' in sys.argv:
                 self.loadCSVFile(sys.argv[sys.argv.index('-c')+1])
-            
+
             if '-v' in sys.argv:
                 self.verbose = True
-            
+
             if len(self.program):
                 self.run()
-    
+
     def clearProgram(self):
         self.program = {}
-        
+
     def loadASCIIFile(self,filePath):
         file = open(filePath)
         charinput = file.readlines()
@@ -91,7 +92,7 @@ class BefungeInterpreter:
         for y in range(0,len(charinput)):
             for x in range(0,len(charinput[y])-1):#1 to cut off newlines! check spec on this, we might need to account for /r/n
                 self.program[(x,y)] = charinput[y][x]
-    
+
     def loadCSVFile(self,filePath):
         self.clearProgram()
         y = 0
@@ -108,11 +109,11 @@ class BefungeInterpreter:
                         char = ' '
                     self.program[(x,y)] = char
                 y += 1
-        
-            
+
+
     def run(self):
         self.pointerPosition = (0,0)
-        
+
         while not self.exitStateFound:# and self.tick < 300:
             self.tick +=1
             if self.verbose:
@@ -124,9 +125,9 @@ class BefungeInterpreter:
                 #print('tick: '+ str(self.tick))
                 print('-'*20)
             self.processCommand()
-        
+
         return self.exitValue
-            
+
     def getCommand(self):
         if self.stringMode:
             if self.program.get(self.pointerPosition," ") == " ":
@@ -150,25 +151,25 @@ class BefungeInterpreter:
                 return self.getCommand()
             else:
                 return self.program[self.pointerPosition]
-    
+
     def processCommand(self):
         currentCommand = self.getCommand()
         if self.stringMode:
-            self.string()    
+            self.string()
         elif currentCommand in set("1234567890abcdef"):#TODO: optimize
             self.push(int(currentCommand,16))
         else:
-            self.functionDictionary.get(currentCommand,self.error)()     
+            self.functionDictionary.get(currentCommand,self.error)()
         self.advance()
-        
+
     def error(self):
         print("unexpected character encountered, '" + str(self.getCommand()) + "' at " + str(self.pointerPosition))
         exit()
-    
+
     def advance(self):#TODO: implement lahey-space wraparound
         screenspaceDelta = (self.delta[0],-self.delta[1])#delta is stored as coordinate delta. in screenspace positive y is flipped. this affects the turning functions
         self.pointerPosition = tuple(map(lambda x,y: x+y,self.pointerPosition,screenspaceDelta))
-    
+
     def retreat(self):
         self.pointerPosition = tuple(map(lambda x,y: x-y,self.pointerPosition,self.delta))
 
@@ -177,7 +178,7 @@ class BefungeInterpreter:
     def push(self,value):
         self.stack[0].push(value)
 
-    #command functions    
+    #command functions
     def add(self):
         a,b = self.pop(),self.pop()
         self.push(a+b)
@@ -254,25 +255,25 @@ class BefungeInterpreter:
     def put(self):
         y,x,v = self.pop(),self.pop(),self.pop()
         x,y = x+self.storageOffset[0],y+self.storageOffset[1]
-        
+
         self.program[(x,y)] = chr(v)
     def get(self):
         y,x = self.pop(),self.pop()
         x,y = x+self.storageOffset[0],y+self.storageOffset[1]
-        
+
         self.push(ord(self.program[(x,y)]))
     def inputNumber(self):#spec says to extract first contiguous base 10 number from input
-        
+
         m = re.search('\d+',input())
         self.push(int(m.group(0)))#currently errors if not found. maybe reflect()?
-        
+
     def inputChar(self):
         self.push(ord(input()))
     def end(self):
         self.exitStateFound = True
     def noop(self):
         ""
-    
+
     def turnLeft(self):
         x,y = self.delta
         y *= -1
@@ -281,21 +282,21 @@ class BefungeInterpreter:
         x,y = self.delta
         x *= -1
         self.delta = (y,x)
-            
+
     def reverse(self):#todo: hooray, I can do lambdas. they'll be the first to go when I start optomizing
         self.delta = tuple(map(lambda x: x*-1,self.delta))
-    
+
     def popVector(self):
         y,x = self.pop(),self.pop()
         self.delta = (x,y)
-    
+
     def jumpOver(self):#TODO: incorporate this and space into getCommand. they take 0 ticks, and certain instructions require getCommand to return the next actual valid character
         if not self.jumpOverMode:
             self.jumpOverMode = True
         else:
             if self.getCommand() == self.jumpOverCharacter:
                 self.jumpOverMode = False
-    
+
     def jumpForward(self):
         num = self.pop()
         if num > 0:
@@ -304,18 +305,18 @@ class BefungeInterpreter:
         else:
             for i in range(0,num*-1):
                 self.retreat()
-    
+
     def quit(self):
         self.exitStateFound = True
         self.exitValue = self.pop()
-        
+
     def iterate(self):
         num = self.pop()
         self.advance()
         command = self.getCommand()
         for i in range(0,num):
             self.functionDictionary[command]()
-    
+
     def compare(self):
         b,a = self.pop(),self.pop()
         if a < b:
@@ -324,19 +325,19 @@ class BefungeInterpreter:
             self.noop()
         else:
             self.turnRight()
-    
+
     #TODO: do pushthrough functions. 0-9 and a-f
     def fetchCharacter(self):
         self.advance()
         self.push(ord(self.getCommand()))
-        
+
     def store(self):
         self.advance()
         self.program[self.pointerPosition] = chr(self.pop())
-        
+
     def clearStack(self):
         self.stack[0]= Stack()
-        
+
     def beginBlock(self):
         n = self.pop()
         if n < 0:
@@ -346,7 +347,7 @@ class BefungeInterpreter:
         self.stack[1].push(self.storageOffset[0])
         self.stack[1].push(self.storageOffset[1])
         self.storageOffset = tuple(map(lambda x,y: x+y,self.pointerPosition,self.delta))
-        
+
     def endBlock(self):
         if len(self.stack) > 1:
             n = self.pop()
@@ -360,7 +361,7 @@ class BefungeInterpreter:
             self.stack.popleft()
         else:
             self.reverse();
-            
+
     def stackUnderStack(self):
         if len(self.stack) == 1:
             self.reverse()
@@ -372,11 +373,11 @@ class BefungeInterpreter:
             elif n < 0:
                 for i in range(0,-n):
                     self.stack[1].push(self.pop())
-                    
-                  
+
+
     #TO BE CONTINUED
-        
-        
+
+
 b = BefungeInterpreter()
 if (len(sys.argv) <= 2):
 	b.verbose = False#True
