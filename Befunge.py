@@ -2,12 +2,6 @@
 Created on Jun 13, 2013
 
 @author: RSHELDON
-
-import sys
-import tty
-tty.setcbreak(sys.stdin)
-while True:
-    print ord(sys.stdin.read(1))
 '''
 import sys,random,csv,re
 from collections import deque
@@ -36,16 +30,16 @@ class Stack:
 
 class BefungeInterpreter:
     def __init__(self):
-        self.program = {}
+        self.program = {} #program loaded into memory, where the key is the hash of the location (eg (1,0) for befunge or (1,3,4) for trefunge etc)
         self.tick = 0
-        self.stack = deque([Stack()])
-        self.exitStateFound = False
-        self.pointerPosition = (0,0)
-        self.exitValue = 0
-        self.storageOffset = (0,0)
-        self.stringMode = False;
+        self.stack = deque([Stack()]) #stack of stacks for holding data
+        self.exitStateFound = False #tells the program to exit. not sure why I did it this way, i'll have to check
+        self.pointerPosition = (0,0) #position of instruction pointer
+        self.exitValue = 0 #for errors, returns at program exit
+        self.storageOffset = (0,0) #I believe the offset at which put and get commands operate
+        self.stringMode = False; #check for if string mode is on
         self.stringCharacter = '"'
-        self.jumpOverMode = False;
+        self.jumpOverMode = False; #check for if jump mode is on
         self.jumpOverCharacter = ';'
 
         self.functionDictionary = {\
