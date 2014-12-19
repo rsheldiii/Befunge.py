@@ -5,7 +5,7 @@ Created on Nov 14, 2013
 '''
 
 import csv
-class Converter:
+class BefungeConverter:
     def __init__(self):
         pass
         
