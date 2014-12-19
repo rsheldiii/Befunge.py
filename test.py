@@ -3,7 +3,7 @@ import sys
 
 b = BefungeInterpreter()
 if (len(sys.argv) <= 2):
-    b.verbose = False#True
-    b.loadCSVFile('dice.csv')
+    b.program.verbose = False#True TODO make this not like touch things three deep
+    b.loadCSVFile('programs/dice.csv')
     #b.loadASCIIFile('befunge.txt')
     b.run()
