@@ -367,6 +367,7 @@ y get sysInfo
 unimplemented features:
 lahey-space wraparound
 3d vectors and similar
+concurrent funge
 um... other stuff
 
 note that just because it isn't on this list doesn't mean it's completely finished
