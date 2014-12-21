@@ -7,21 +7,10 @@ import csv,sys
 from befunge.befunge_program import BefungeProgram
 
 class BefungeInterpreter:
-    def __init__(self):
+    def __init__(self, verbose = False, ticks = 0):
         self.clearProgram() #program loaded into memory, where the key is the hash of the location (eg (1,0) for befunge or (1,3,4) for trefunge etc)
-        self.verbose = False
-
-        if __name__ == "__main__":#TODO: move and reimplement these somewhere else, this is now a library for interpreting befunge programs and not a command line tool
-            if '-f' in sys.argv:
-                self.loadASCIIFile(sys.argv[sys.argv.index('-f')+1])
-            if '-c' in sys.argv:
-                self.loadCSVFile(sys.argv[sys.argv.index('-c')+1])
-
-            if '-v' in sys.argv:
-                self.verbose = True
-
-            if len(self.program):
-                self.run()
+        self.verbose = verbose
+        self.maxTicks = ticks
 
     def clearProgram(self):
         self.program = BefungeProgram()
@@ -57,13 +46,16 @@ class BefungeInterpreter:
 
         while not self.program.exitStateFound:# and self.tick < 300:
             if self.verbose:
-                print(self.program.data)
-                #print("pointer position: " + str(self.pointerPosition))
+                #print(self.program.data)
+                print("stack: " + str(self.program.stack()))
+                print("pointer position: " + str(self.program.pointerPosition))
                 #print("direction: " +str(self.delta))
                 print("current command: " + self.program.getCommand())
                 #print('tick: '+ str(self.program.tick))
                 print('-'*20)
-            self.program.proceed()
+                if self.maxTicks != 0 and self.program.ticks > self.maxTicks:
+                    break
+            self.program.tick()
 
         return self.program.exitValue
 

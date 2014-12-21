@@ -7,6 +7,7 @@ class BefungeProgram:
         self.stringModeCharacter = '"'
         self.commentModeCharacter = ';'
         self.primitives = set("1234567890abcdef")
+        self.stacks = deque([BefungeStack()]) #stack of stacks for holding data
 
         self.setFunctionDictionary()
 
@@ -14,12 +15,15 @@ class BefungeProgram:
         self.WEST = (-1,0)
         self.NORTH = (0,1)
         self.SOUTH = (0,-1)
+
+
         self.initProgram()
 
     def initProgram(self): # deals with the initialization of the program itself and not just state. TODO check if I can put the state somewhere else, like statics, as it will never change
         self.data = {}
-        self.tick = 0
-        self.stack = deque([BefungeStack()]) #stack of stacks for holding data
+        self.ticks = 0
+
+        self.stacks = deque([BefungeStack()]) #here twice as stack() is used in the function dictionary
         self.delta = self.EAST
 
         self.exitStateFound = False # tells the program to exit. not sure why I did it this way, i'll have to check
@@ -36,12 +40,12 @@ class BefungeProgram:
     def getCommand(self):
       return self[self.pointerPosition]
 
-    def proceed(self):#TODO wanted to name tick
-        self.tick +=1
+    def tick(self):#TODO wanted to name tick
+        self.ticks +=1
         currentCommand = self.getCommand()
 
         if currentCommand in self.primitives:#TODO: optimize
-            self.stackPush(int(currentCommand,16))
+            self.stack().push(int(currentCommand,16))
         else:
             self.functionDictionary.get(currentCommand,self.error)()
         self.advance()
@@ -58,50 +62,44 @@ class BefungeProgram:
     def retreat(self):
         self.pointerPosition = tuple(map(lambda x,y: x-y,self.pointerPosition,self.delta))
 
-    def stackPop(self,n=""): #TODO: figure out how they do default n
-        return self.stack[0].pop(n)
-
-    def stackPush(self,value):
-        self.stack[0].push(value)
-
-    def stackPeek(self): #not a funge command
-        return self.stack[0].peek()
+    def stack(self):
+        return self.stacks[0]
 
     #command functions
     def add(self):
-        a,b = self.stackPop(),self.stackPop()
-        self.stackPush(a+b)
+        a,b = self.stack().pop(),self.stack().pop()
+        self.stack().push(a+b)
 
     def subtract(self):
-        a,b = self.stackPop(),self.stackPop()
-        self.stackPush(b-a)
+        a,b = self.stack().pop(),self.stack().pop()
+        self.stack().push(b-a)
 
     def multiply(self):
-        a,b = self.stackPop(),self.stackPop()
-        self.stackPush(a*b)
+        a,b = self.stack().pop(),self.stack().pop()
+        self.stack().push(a*b)
 
     def divide(self):
-        a,b = self.stackPop(),self.stackPop()
-        self.stackPush(b//a)#will error on 0 currently
+        a,b = self.stack().pop(),self.stack().pop()
+        self.stack().push(b//a)#will error on 0 currently
 
     def modulus(self):
-        a,b = self.stackPop(),self.stackPop()
-        self.stackPush(b%a)#will error on 0 currently
+        a,b = self.stack().pop(),self.stack().pop()
+        self.stack().push(b%a)#will error on 0 currently
 
     def logicalNot(self):#not is reserved lol
-        a = self.stackPop()
+        a = self.stack().pop()
         if a==0:
             a = 1
         else:
             a = 0
-        self.stackPush(a)
+        self.stack().push(a)
 
     def greaterThan(self):
-        a,b = self.stackPop(),self.stackPop()
+        a,b = self.stack().pop(),self.stack().pop()
         if b>a:
-            self.stackPush(1)
+            self.stack().push(1)
         else:
-            self.stackPush(0)
+            self.stack().push(0)
 
     def west(self):
         self.delta = self.WEST
@@ -119,14 +117,14 @@ class BefungeProgram:
         self.delta = random.choice([self.WEST,self.EAST,self.NORTH,self.SOUTH])
 
     def westOrEast(self):
-        a = self.stackPop()
+        a = self.stack().pop()
         if a==0:
             self.delta = self.EAST
         else:
             self.delta = self.WEST
 
     def northOrSouth(self):
-        a = self.stackPop()
+        a = self.stack().pop()
         if a==0:
             self.delta = self.SOUTH
         else:
@@ -136,8 +134,8 @@ class BefungeProgram:
         currentCommand = self.advance()
 
         while currentCommand != self.stringModeCharacter:
-            if self.stackPeek != " " or currentCommand != " " :
-                self.stackPush(ord(currentCommand))
+            if self.stack().peek() != " " or currentCommand != " " :
+                self.stack().push(ord(currentCommand))
 
             currentCommand = self.advance()
 
@@ -147,44 +145,44 @@ class BefungeProgram:
             currentCommand = self.advance()
 
     def duplicate(self):
-        a = self.stackPop()
-        self.stackPush(a)
-        self.stackPush(a)
+        a = self.stack().pop()
+        self.stack().push(a)
+        self.stack().push(a)
 
     def swap(self):
-        x,y = self.stackPop(),self.stackPop()
-        self.stackPush(x)
-        self.stackPush(y)
+        x,y = self.stack().pop(),self.stack().pop()
+        self.stack().push(x)
+        self.stack().push(y)
 
     def intPrint(self):
-        print(self.stackPop(), end="")
+        print(self.stack().pop(), end="")
 
     def strPrint(self):
-        print(chr(self.stackPop()), end="")
+        print(chr(self.stack().pop()), end="")
 
     def jump(self):
         self.advance()
 
     def put(self):
-        y,x,v = self.stackPop(),self.stackPop(),self.stackPop()
+        y,x,v = self.stack().pop(),self.stack().pop(),self.stack().pop()
         x,y = x+self.storageOffset[0],y+self.storageOffset[1]
 
         self[(x,y)] = chr(v)
 
     def get(self):
-        y,x = self.stackPop(),self.stackPop()
+        y,x = self.stack().pop(),self.stack().pop()
         x,y = x+self.storageOffset[0],y+self.storageOffset[1]
 
-        self.stackPush(ord(self[(x,y)]))
+        self.stack().push(ord(self[(x,y)]))
 
     def inputNumber(self):#spec says to extract first contiguous base 10 number from input
 
         m = re.search('\d+',input())
-        self.stackPush(int(m.group(0)))#currently errors if not found. maybe reflect()?
+        self.stack().push(int(m.group(0)))#currently errors if not found. maybe reflect()?
 
     def inputChar(self):
         a = input()#TODO errors on null input
-        self.stackPush(ord(a))
+        self.stack().push(ord(a))
 
     def end(self):
         self.exitStateFound = True
@@ -204,8 +202,8 @@ class BefungeProgram:
     def reverse(self):#todo: hooray, I can do lambdas. they'll be the first to go when I start optomizing
         self.delta = tuple(map(lambda x: x*-1,self.delta))
 
-    def stackPopVector(self):
-        y,x = self.stackPop(),self.stackPop()
+    def popVector(self):
+        y,x = self.stack().pop(),self.stack().pop()
         self.delta = (x,y)
 
     def jumpOver(self):#TODO: incorporate this and space into getCommand. they take 0 ticks, and certain instructions require getCommand to return the next actual valid character
@@ -216,7 +214,7 @@ class BefungeProgram:
                 self.jumpOverMode = False
 
     def jumpForward(self):
-        num = self.stackPop()
+        num = self.stack().pop()
         if num > 0:
             for i in range(0,num):
                 self.advance()
@@ -226,17 +224,17 @@ class BefungeProgram:
 
     def quit(self):
         self.exitStateFound = True
-        self.exitValue = self.stackPop()
+        self.exitValue = self.stack().pop()
 
     def iterate(self):
-        num = self.stackPop()
+        num = self.stack().pop()
         self.advance()
         command = self.getCommand()
         for i in range(0,num):
             self.functionDictionary[command]()
 
     def compare(self):
-        b,a = self.stackPop(),self.stackPop()
+        b,a = self.stack().pop(),self.stack().pop()
         if a < b:
             self.turnLeft()
         elif a == b:
@@ -248,36 +246,36 @@ class BefungeProgram:
 
     def fetchCharacter(self):
         self.advance()
-        self.stackPush(ord(self.getCommand()))
+        self.stack().push(ord(self.getCommand()))
 
     def store(self):
         self.advance()
-        self[self.pointerPosition] = chr(self.stackPop())
+        self[self.pointerPosition] = chr(self.stack().pop())
 
     def clearStack(self):
-        self.stack[0]= Stack()
+        self.stacks[0]= Stack()
 
     def beginBlock(self):
-        n = self.stackPop()
+        n = self.stack().pop()
         if n < 0:
-            self.stack.prepend(Stack([0]*n))
+            self.stack().prepend(Stack([0]*n))
         else:
-            self.stack.appendleft(Stack(self.stack[0].list[-n:]))#have to use list here for now
-        self.stack[1].stackPush(self.storageOffset[0])
-        self.stack[1].stackPush(self.storageOffset[1])
+            self.stack().appendleft(Stack(self.stack().list[-n:]))#have to use list here for now
+        self.stacks[1].stackPush(self.storageOffset[0])
+        self.stacks[1].stackPush(self.storageOffset[1])
         self.storageOffset = tuple(map(lambda x,y: x+y,self.pointerPosition,self.delta))# I hate python lambda syntax
 
     def endBlock(self):
         if len(self.stack) > 1:
-            n = self.stackPop()
-            y,x = self.stack[1].stackPop(),self.stack[1].stackPop()
+            n = self.stack().pop()
+            y,x = self.stacks[1].stackPop(),self.stacks[1].stackPop()
             self.storageOffset = (x,y)
             if n < 0:
                 for i in range(0,n):
-                    self.stack[1].stackPop()
+                    self.stacks[1].stackPop()
             else:
-                self.stack[1].list += self.stack[0].list[-n:]#using list here too
-            self.stack.stackPopleft()
+                self.stacks[1].list += self.stack().list[-n:]#using list here too
+            self.stack().stackPopleft()
         else:
             self.reverse();
 
@@ -285,13 +283,13 @@ class BefungeProgram:
         if len(self.stack) == 1:
             self.reverse()
         else:
-            n = self.stackPop()
+            n = self.stack().pop()
             if n > 0:
                 for i in range(0,n):
-                    self.stackPush(self.stack[1].stackPop())
+                    self.stack().push(self.stacks[1].stackPop())
             elif n < 0:
                 for i in range(0,-n):
-                    self.stack[1].stackPush(self.stackPop())
+                    self.stacks[1].stackPush(self.stack().pop())
 
     def setFunctionDictionary(self):
         #down here to make class prettier
@@ -300,7 +298,7 @@ class BefungeProgram:
               '!' : self.logicalNot,\
               '"' : self.stringMode,\
               '#' : self.jump,\
-              '$' : self.stackPop,\
+              '$' : self.stack().pop,\
               '%' : self.modulus,\
               '&' : self.inputNumber,\
               '*' : self.multiply,\
@@ -341,7 +339,7 @@ class BefungeProgram:
               'V' : self.south,\
               'v' : self.south,\
               'w' : self.compare,\
-              'x' : self.stackPopVector,\
+              'x' : self.popVector,\
               'z' : self.noop,\
               '{' : self.beginBlock,\
               '|' : self.northOrSouth,\
