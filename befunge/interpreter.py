@@ -4,7 +4,7 @@ Created on Jun 13, 2013
 @author: RSHELDON
 '''
 import csv,sys
-from befunge.befunge_program import BefungeProgram
+from befunge.program import BefungeProgram
 
 class BefungeInterpreter:
     def __init__(self, verbose = False, ticks = 0):

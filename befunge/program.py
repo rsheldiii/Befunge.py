@@ -1,33 +1,26 @@
-import sys,random,re
+import sys,re
 from collections import deque
-from befunge.befunge_stack import BefungeStack
+from befunge.stack import BefungeStack
+from befunge.pointer import BefungePointer
 
 class BefungeProgram:
+    stringModeCharacter = '"'
+    commentModeCharacter = ';'
+    primitives = set("1234567890abcdef")
+
     def __init__(self):
-        self.stringModeCharacter = '"'
-        self.commentModeCharacter = ';'
-        self.primitives = set("1234567890abcdef")
         self.stacks = deque([BefungeStack()]) #stack of stacks for holding data
-
         self.setFunctionDictionary()
-
-        self.EAST = (1,0)
-        self.WEST = (-1,0)
-        self.NORTH = (0,1)
-        self.SOUTH = (0,-1)
-
-
         self.initProgram()
 
     def initProgram(self): # deals with the initialization of the program itself and not just state. TODO check if I can put the state somewhere else, like statics, as it will never change
         self.data = {}
+        self.pointer = BefungePointer()#TODO self.pointers = [BefungePointer((0,0))]
         self.ticks = 0
 
         self.stacks = deque([BefungeStack()]) #here twice as stack() is used in the function dictionary
-        self.delta = self.EAST
 
         self.exitStateFound = False # tells the program to exit. not sure why I did it this way, i'll have to check
-        self.pointerPosition = (0,0) # position of instruction pointer
         self.exitValue = 0 # for errors, returns at program exit
         self.storageOffset = (0,0) # I believe the offset at which put and get commands operate
 
@@ -38,7 +31,7 @@ class BefungeProgram:
       self.data[index] = value # TODO abstracted this out, might not want to
 
     def getCommand(self):
-      return self[self.pointerPosition]
+      return self[self.pointer.position]
 
     def tick(self):#TODO wanted to name tick
         self.ticks +=1
@@ -51,16 +44,15 @@ class BefungeProgram:
         self.advance()
 
     def error(self):
-        print("unexpected character encountered, '" + str(self.getCommand()) + "' at " + str(self.pointerPosition))
+        print("unexpected character encountered, '" + str(self.getCommand()) + "' at " + str(self.pointer.position))
         exit()
 
     def advance(self): #TODO: implement lahey-space wraparound
-        screenspaceDelta = (self.delta[0],-self.delta[1])#delta is stored as coordinate delta. in screenspace positive y is flipped. this affects the turning functions.
-        self.pointerPosition = tuple(map(lambda x,y: x+y,self.pointerPosition,screenspaceDelta))
+        self.pointer.advance()
         return self.getCommand()
 
     def retreat(self):
-        self.pointerPosition = tuple(map(lambda x,y: x-y,self.pointerPosition,self.delta))
+        self.pointer.position = tuple(map(lambda x,y: x-y,self.pointer.position,self.delta))
 
     def stack(self):
         return self.stacks[0]
@@ -102,33 +94,33 @@ class BefungeProgram:
             self.stack().push(0)
 
     def west(self):
-        self.delta = self.WEST
+        self.pointer.faceWest()
 
     def east(self):
-        self.delta = self.EAST
+        self.pointer.faceEast()
 
     def north(self):
-        self.delta = self.NORTH
+        self.pointer.faceNorth()
 
     def south(self):
-        self.delta = self.SOUTH
+        self.pointer.faceSouth()
 
     def randomDirection(self):
-        self.delta = random.choice([self.WEST,self.EAST,self.NORTH,self.SOUTH])
+        self.pointer.faceRandom()
 
     def westOrEast(self):
         a = self.stack().pop()
         if a==0:
-            self.delta = self.EAST
+            self.pointer.faceEast()
         else:
-            self.delta = self.WEST
+            self.pointer.faceWest()
 
     def northOrSouth(self):
         a = self.stack().pop()
         if a==0:
-            self.delta = self.SOUTH
+            self.pointer.faceSouth()
         else:
-            self.delta = self.NORTH
+            self.pointer.faceNorth()
 
     def stringMode(self):#fast forwards execution to next seen stringMode character, stackPushing all interim characters onto the stack on the way and compressing all spacesw
         currentCommand = self.advance()
@@ -250,7 +242,7 @@ class BefungeProgram:
 
     def store(self):
         self.advance()
-        self[self.pointerPosition] = chr(self.stack().pop())
+        self[self.pointer.position] = chr(self.stack().pop())
 
     def clearStack(self):
         self.stacks[0]= Stack()
@@ -263,7 +255,7 @@ class BefungeProgram:
             self.stack().appendleft(Stack(self.stack().list[-n:]))#have to use list here for now
         self.stacks[1].stackPush(self.storageOffset[0])
         self.stacks[1].stackPush(self.storageOffset[1])
-        self.storageOffset = tuple(map(lambda x,y: x+y,self.pointerPosition,self.delta))# I hate python lambda syntax
+        self.storageOffset = tuple(map(lambda x,y: x+y,self.pointer.position,self.delta))# I hate python lambda syntax
 
     def endBlock(self):
         if len(self.stack) > 1:
@@ -298,7 +290,7 @@ class BefungeProgram:
               '!' : self.logicalNot,\
               '"' : self.stringMode,\
               '#' : self.jump,\
-              '$' : self.stack().pop,\
+              '$' : self.stack().pop,# TODO can I make this a lambda so I can put the stack def in initProgram\
               '%' : self.modulus,\
               '&' : self.inputNumber,\
               '*' : self.multiply,\

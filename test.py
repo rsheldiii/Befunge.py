@@ -1,4 +1,4 @@
-from befunge.befunge_interpreter import BefungeInterpreter
+from befunge.interpreter import BefungeInterpreter
 import sys
 
 b = BefungeInterpreter(False,100)
