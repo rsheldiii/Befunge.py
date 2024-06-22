@@ -52,7 +52,7 @@ class BefungeProgram:
         return self.getCommand()
 
     def retreat(self):
-        self.pointer.position = tuple(map(lambda x,y: x-y,self.pointer.position,self.delta))
+        self.pointer.position = tuple(map(lambda x,y: x-y,self.pointer.position,self.pointer.delta))
 
     def stack(self):
         return self.stacks[0]
@@ -183,20 +183,20 @@ class BefungeProgram:
         ""
 
     def turnLeft(self):
-        x,y = self.delta
+        x,y = self.pointer.delta
         y *= -1
-        self.delta = (y,x)
+        self.pointer.delta = (y,x)
     def turnRight(self):
-        x,y = self.delta
+        x,y = self.pointer.delta
         x *= -1
-        self.delta = (y,x)
+        self.pointer.delta = (y,x)
 
     def reverse(self):#todo: hooray, I can do lambdas. they'll be the first to go when I start optomizing
-        self.delta = tuple(map(lambda x: x*-1,self.delta))
+        self.pointer.delta = tuple(map(lambda x: x*-1,self.pointer.delta))
 
     def popVector(self):
         y,x = self.stack().pop(),self.stack().pop()
-        self.delta = (x,y)
+        self.pointer.delta = (x,y)
 
     def jumpOver(self):#TODO: incorporate this and space into getCommand. they take 0 ticks, and certain instructions require getCommand to return the next actual valid character
         if not self.jumpOverMode:
@@ -255,7 +255,7 @@ class BefungeProgram:
             self.stack().appendleft(Stack(self.stack().list[-n:]))#have to use list here for now
         self.stacks[1].stackPush(self.storageOffset[0])
         self.stacks[1].stackPush(self.storageOffset[1])
-        self.storageOffset = tuple(map(lambda x,y: x+y,self.pointer.position,self.delta))# I hate python lambda syntax
+        self.storageOffset = tuple(map(lambda x,y: x+y,self.pointer.position,self.pointer.delta))# I hate python lambda syntax
 
     def endBlock(self):
         if len(self.stack) > 1:
